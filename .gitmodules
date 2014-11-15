@@ -1,0 +1,3 @@
+[submodule "src/github.com/lykling/goutils"]
+	path = src/github.com/lykling/goutils
+	url = git@github.com:lykling/goutils.git
