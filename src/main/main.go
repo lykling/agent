@@ -6,19 +6,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"regexp"
 
 	"github.com/lykling/goutils/color"
 )
 
-var (
-	fclogUrl = "http://localhost:8778/"
-	logPath  = regexp.MustCompile(`/nirvana.*fclogimg.gif`)
-)
-
 func handler(w http.ResponseWriter, r *http.Request) {
+	// fmt.Fprintf(os.Stdout, "URL: %v\n", r.URL)
+	// fmt.Fprintf(os.Stdout, "URI: %v\n", r.RequestURI)
 	// reset RequestURI
 	r.RequestURI = ""
 	tagColor := []int{color.Bold, color.ForegroundGreen}
@@ -29,13 +24,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		color.GenerateString(fmt.Sprintf("%v", r.URL), bodyColor),
 	)
 	req := r
-	if logPath.MatchString(fmt.Sprintf("%v", r.URL)) {
-		req.URL, _ = url.Parse(fclogUrl)
-	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
+	defer resp.Body.Close()
 	for k, v := range resp.Header {
 		for _, vv := range v {
 			w.Header().Add(k, vv)
@@ -43,6 +36,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, c := range resp.Cookies() {
 		w.Header().Add("Set-Cookie", c.Raw)
+	}
+	_, ok := resp.Header["Content-Length"]
+	if !ok && resp.ContentLength > 0 {
+		w.Header().Add("Content-Length", fmt.Sprint(resp.ContentLength))
 	}
 	w.WriteHeader(resp.StatusCode)
 	result, err := ioutil.ReadAll(resp.Body)
